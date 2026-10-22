@@ -1,0 +1,45 @@
+name: Build Flet Android APK
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip unzip libltdl-dev openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libstdc++6 libffi-dev libssl-dev
+
+      - name: Install Python Tools
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython==0.29.36 flet requests
+
+      - name: Build APK with Buildozer
+        run: |
+          if [ ! -f "buildozer.spec" ]; then
+            buildozer init
+            sed -i 's/#requirements = python3,flet/requirements = python3,flet,requests/g' buildozer.spec
+            sed -i 's/#title = My Application/title = @pw_9x PAK TOOL/g' buildozer.spec
+            sed -i 's/#package.name = myapp/package.name = pw9xpaktool/g' buildozer.spec
+            sed -i 's/#package.domain = org.test/package.domain = com.pw9x.tool/g' buildozer.spec
+            sed -i 's/#android.permissions =/android.permissions = INTERNET/g' buildozer.spec
+          fi
+          yes | buildozer -v android debug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: pw9x-apk
+          path: bin/*.apk
